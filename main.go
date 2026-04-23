@@ -29,10 +29,10 @@ const (
 
 // NVMe ioctl constants
 const (
-	nvmeAdminCmd    = 0xC0484E41 // NVME_IOCTL_ADMIN_CMD
-	nvmeGetLogPage  = 0x02       // Admin opcode
-	smartLogID      = 0x02
-	smartLogSize    = 512
+	nvmeAdminCmd   = 0xC0484E41 // NVME_IOCTL_ADMIN_CMD
+	nvmeGetLogPage = 0x02       // Admin opcode
+	smartLogID     = 0x02
+	smartLogSize   = 512
 )
 
 // nvmeAdminCommand matches the kernel struct for ioctl
@@ -58,14 +58,14 @@ type nvmeAdminCommand struct {
 }
 
 type diskInfo struct {
-	Device      string
-	Model       string
-	Serial      string
-	Firmware    string
-	Transport   string
-	Rotational  string
-	SizeBytes   float64
-	CephOSD     int // -1 if not a Ceph device
+	Device     string
+	Model      string
+	Serial     string
+	Firmware   string
+	Transport  string
+	Rotational string
+	SizeBytes  float64
+	CephOSD    int // -1 if not a Ceph device
 
 	// SMART data
 	Temperature      float64
@@ -84,19 +84,19 @@ type diskCollector struct {
 	nodeName string
 
 	// Descriptors
-	infoDesc          *prometheus.Desc
-	sizeDesc          *prometheus.Desc
-	tempDesc          *prometheus.Desc
-	usedDesc          *prometheus.Desc
-	spareDesc         *prometheus.Desc
-	pohDesc           *prometheus.Desc
-	readDesc          *prometheus.Desc
-	writtenDesc       *prometheus.Desc
-	unsafeDesc        *prometheus.Desc
-	mediaErrDesc      *prometheus.Desc
-	critWarnDesc      *prometheus.Desc
-	scrapeDurDesc     *prometheus.Desc
-	devicesTotalDesc  *prometheus.Desc
+	infoDesc         *prometheus.Desc
+	sizeDesc         *prometheus.Desc
+	tempDesc         *prometheus.Desc
+	usedDesc         *prometheus.Desc
+	spareDesc        *prometheus.Desc
+	pohDesc          *prometheus.Desc
+	readDesc         *prometheus.Desc
+	writtenDesc      *prometheus.Desc
+	unsafeDesc       *prometheus.Desc
+	mediaErrDesc     *prometheus.Desc
+	critWarnDesc     *prometheus.Desc
+	scrapeDurDesc    *prometheus.Desc
+	devicesTotalDesc *prometheus.Desc
 }
 
 func newDiskCollector(nodeName string) *diskCollector {
@@ -334,7 +334,7 @@ func readNVMeSMART(d *diskInfo) bool {
 		log.Printf("cannot open %s: %v", ctrlDev, err)
 		return false
 	}
-	defer unix.Close(fd)
+	defer func() { _ = unix.Close(fd) }()
 
 	buf := make([]byte, smartLogSize)
 
@@ -488,7 +488,7 @@ func main() {
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "ok")
+		_, _ = fmt.Fprintln(w, "ok")
 	})
 
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
