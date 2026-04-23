@@ -346,7 +346,7 @@ func readNVMeSMART(d *diskInfo) bool {
 		Cdw10:   uint32(smartLogID) | (((smartLogSize / 4) - 1) << 16),
 	}
 
-	_, _, errno := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(nvmeAdminCmd), uintptr(unsafe.Pointer(&cmd)))
+	_, _, errno := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(nvmeAdminCmd), uintptr(unsafe.Pointer(&cmd))) //nolint:staticcheck // SYS_IOCTL is required for NVMe admin commands; this runs on Linux only
 	if errno != 0 {
 		log.Printf("NVMe ioctl failed on %s: %v", ctrlDev, errno)
 		return false
