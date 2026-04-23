@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: depot-ubuntu-24.04
+    env:
+      FLOX_DISABLE_METRICS: "true"
+      GOMODCACHE: /home/runner/.cache/go/pkg/mod
+      GOLANGCI_LINT_CACHE: /home/runner/.cache/golangci-lint
+      GOCACHEPROG: depot gocache
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixpkgs-unstable
+
+      - name: Restore Nix store cache
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '.flox/env/manifest.toml') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          save: false
+
+      - name: Cache Go dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.cache/go/pkg/mod
+            /home/runner/.cache/golangci-lint
+          key: go-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-
+
+      - name: Install Flox
+        run: |
+          . /home/runner/.nix-profile/etc/profile.d/nix.sh
+          nix profile install \
+            --experimental-features "nix-command flakes" \
+            --accept-flake-config \
+            'github:flox/flox/v1.11.0'
+
+      - name: Activate Flox environment
+        run: |
+          . ~/.nix-profile/etc/profile.d/nix.sh
+          flox activate -vv -- true
+
+      - name: Build
+        run: flox activate -- go build ./...
+
+      - name: Vet
+        run: flox activate -- go vet ./...
+
+      - name: Lint
+        run: flox activate -- golangci-lint run ./...
+
+      - name: Test
+        run: flox activate -- go test -race -count=1 ./...
+
+      - name: Fix Nix permissions for caching
+        if: always()
+        run: sudo chmod -R a+r /nix && sudo find /nix -type d -exec chmod a+rx {} +
+
+      - name: Save Nix store cache
+        if: always()
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '.flox/env/manifest.toml') }}
+          lookup-only: true
+          gc-max-store-size-linux: 5G
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-last-accessed: P1DT12H
+          purge-primary-key: never

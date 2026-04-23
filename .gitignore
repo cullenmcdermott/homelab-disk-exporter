@@ -1,0 +1,49 @@
+# Binaries
+disk-exporter
+disk-exporter-linux-amd64
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Go workspace sum (generated, not the work file itself)
+go.work.sum
+
+# Build output
+/dist/
+/bin/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+build-errors.log
+
+# Flox environment cache
+.flox/cache/
+.flox/run/
+
+# Just command artifacts
+.just/
+
+# Vendor directory
+vendor/

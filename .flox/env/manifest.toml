@@ -1,0 +1,60 @@
+schema-version = "1.11.0"
+
+[install]
+go.pkg-path = "go"
+golangci-lint.pkg-path = "golangci-lint"
+just.pkg-path = "just"
+docker.pkg-path = "docker"
+docker-compose.pkg-path = "docker-compose"
+
+# Utilities
+jq.pkg-path = "jq"
+git.pkg-path = "git"
+
+[vars]
+PROJECT_NAME = "disk-exporter"
+BINARY_NAME = "disk-exporter"
+DOCKER_IMAGE = "ghcr.io/cullenmcdermott/disk-exporter"
+GO111MODULE = "on"
+CGO_ENABLED = "0"
+
+[hook]
+on-activate = '''
+# Workaround for glibc TLS race condition in GitHub Actions
+unset LD_AUDIT
+
+setup_go_deps() {
+  local deps_flag="$FLOX_ENV_CACHE/.go_deps_installed"
+  if [ ! -f "$deps_flag" ] && [ -f "$FLOX_ENV_PROJECT/go.mod" ]; then
+    go mod download && touch "$deps_flag"
+  fi
+}
+
+export GOENV="${GOENV:-${FLOX_ENV_CACHE:-/tmp}/goenv}"
+export GOCACHE="${GOCACHE:-${FLOX_ENV_CACHE:-/tmp}/go-build}"
+export GOMODCACHE="${GOMODCACHE:-${FLOX_ENV_CACHE:-/tmp}/go/pkg/mod}"
+mkdir -p "$GOENV" "$GOCACHE" "$GOMODCACHE"
+
+setup_git_hooks() {
+  local hook_dir="$FLOX_ENV_PROJECT/.git/hooks"
+  local hook_file="$hook_dir/pre-commit"
+  local marker="# managed by flox"
+  if [ -d "$FLOX_ENV_PROJECT/.git" ] && { [ ! -f "$hook_file" ] || grep -q "$marker" "$hook_file"; }; then
+    cat > "$hook_file" <<'HOOK'
+#!/usr/bin/env bash
+# managed by flox
+set -euo pipefail
+if ! command -v golangci-lint >/dev/null 2>&1; then
+  echo "warning: golangci-lint not found, skipping pre-commit lint (activate flox env)" >&2
+  exit 0
+fi
+exec golangci-lint run --new-from-rev=HEAD
+HOOK
+    chmod +x "$hook_file"
+  fi
+}
+
+setup_go_deps
+setup_git_hooks
+cd "$FLOX_ENV_PROJECT"
+'''
