@@ -126,6 +126,7 @@ cd "$FLOX_ENV_PROJECT"
 
 ## Other Environment Options -----------------------------------------
 [options]
+systems = ["aarch64-darwin", "aarch64-linux", "x86_64-linux"]
 # Systems that environment is compatible with
 # systems = [
 #   "aarch64-darwin",
