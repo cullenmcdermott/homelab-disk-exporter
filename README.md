@@ -25,6 +25,8 @@ A Prometheus exporter that runs as a DaemonSet on Kubernetes nodes, exposing dis
 - Runs as a privileged DaemonSet (needed for NVMe ioctl and `smartctl`)
 - Mounts `/dev`, `/sys`, and `/var/lib/rook` from the host
 - `NODE_NAME` env var set via Kubernetes downward API
+- Optional `SMART_SKIP`: a regex matched against `<node>/<device>` (e.g. `^pve-1/sda$`). Matching devices get
+  no SMART reads; their sysfs info and size metrics are still exported.
 
 ## Development
 

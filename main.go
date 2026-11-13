@@ -148,7 +148,11 @@ func (c *diskCollector) Collect(ch chan<- prometheus.Metric) {
 		if osd, ok := osdMap[disks[i].Device]; ok {
 			disks[i].CephOSD = osd
 		}
-		readSMART(&disks[i])
+		// SMART_SKIP (regex on "<node>/<device>") skips SMART reads for devices
+		// whose controller can't take passthrough commands; sysfs metrics stay.
+		if smartSkipRe == nil || !smartSkipRe.MatchString(c.nodeName+"/"+disks[i].Device) {
+			readSMART(&disks[i])
+		}
 	}
 
 	scrapeD := time.Since(start).Seconds()
@@ -180,6 +184,13 @@ func (c *diskCollector) Collect(ch chan<- prometheus.Metric) {
 // --- Device Discovery ---
 
 var skipDeviceRe = regexp.MustCompile(`^(loop|dm-|ram|nbd|sr|rbd)`)
+
+var smartSkipRe = func() *regexp.Regexp {
+	if s := os.Getenv("SMART_SKIP"); s != "" {
+		return regexp.MustCompile(s)
+	}
+	return nil
+}()
 
 func discoverDisks() []diskInfo {
 	entries, err := os.ReadDir(hostSysBlock)
